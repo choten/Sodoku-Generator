@@ -14,6 +14,7 @@ units = dict((s, [u for u in unitlist if s in u])
 peers = dict((s, set(sum(units[s],[]))-set([s]))
              for s in squares)
 
+
 def parse_grid(grid):
     """Convert grid to a dict of possible values, {square: digits}, or
     return False if a contradiction is detected."""
@@ -63,3 +64,9 @@ def eliminate(values, s, d):
                 if not assign(values, dplaces[0], d):
                     return False
     return values
+
+
+
+grid_test = '003020600900305001001806400008102900700000008006708200002609500800203009005010300';
+p = parse_grid(grid_test);
+print(p);
