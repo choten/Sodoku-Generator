@@ -14,6 +14,24 @@ units = dict((s, [u for u in unitlist if s in u])
 peers = dict((s, set(sum(units[s],[]))-set([s]))
              for s in squares)
 
+def solve(grid): return search(parse_grid(grid))
+
+def search(values):
+    "Using depth-first search and propagation, try all possible values."
+    if values is False:
+        return False ## Failed earlier
+    if all(len(values[s]) == 1 for s in squares): 
+        return values ## Solved!
+    ## Chose the unfilled square s with the fewest possibilities
+    n,s = min((len(values[s]), s) for s in squares if len(values[s]) > 1)
+    return some(search(assign(values.copy(), s, d)) 
+		for d in values[s])
+
+def some(seq):
+    "Return some element of seq that is true."
+    for e in seq:
+        if e: return e
+    return False
 
 def parse_grid(grid):
     """Convert grid to a dict of possible values, {square: digits}, or
@@ -67,6 +85,6 @@ def eliminate(values, s, d):
 
 
 
-grid_test = '003020600900305001001806400008102900700000008006708200002609500800203009005010300';
-p = parse_grid(grid_test);
-print(p);
+grid_test = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
+p = solve(grid_test)
+print(p)
