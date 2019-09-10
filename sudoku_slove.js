@@ -2,6 +2,7 @@ var DIGITS   = '123456789';
 var ROWS     = 'ABCDEFGHI';
 var COLS     = '123456789';
 var SQUARE_ARRAY  = _cross(ROWS, COLS);
+var STACK = [];
 /**
  * a collection of nine squares (column, row, or box) 
  */
@@ -11,30 +12,61 @@ var UNITS = _create_units();
  */
 var PEERS = _create_peers();
 
+/**
+ * 數獨解法器
+ * @param {*} grid 數獨
+ */
+function solve(grid){ 
+	return _search(_parse_grid(grid));
+}
+
 function _search(value_dict){
 	//在先前階段已經發生錯誤
 	if(value_dict == false) return false;
 
 	//終止條件，如果 value_dict 的值域皆只有一個值，則代表數獨已解完
-	var is_ended = SQUARE_ARRAY.every(function(square){ return value_dict[square].length === 1});
+	var is_ended = SQUARE_ARRAY.every(function(square){ return value_dict[square].length <= 1});
 	if(is_ended === true) return value_dict;
 
 	//開始 search
 	//找有最小值域的 square
 	var len_array = SQUARE_ARRAY.map(function(square){
-		var len = test2[square].length;
-		return len > 1 ? len : 999
+		var len = value_dict[square].length;
+		return len > 1 ? len : 999; //為了將小於1的值排除最小值，故給予值999
 	});
-	var next_square = Math.min(...len_array);
+	var index = indexOfMinum(len_array);
+	var next_square = SQUARE_ARRAY[index];
 
 	//對 next_square 做 back tracking search
 	for(let value of value_dict[next_square]){
-		var new_value_dict = Object.assign({},value_dict);
+		var new_value_dict = Object.assign({},value_dict); //每個 branch 皆 deep clone 一個新的 value_dict
 		var value_dict_after_assign = _assign(new_value_dict,next_square,value);
-		_search(value_dict_after_assign);
+		if(value_dict_after_assign == false) {
+			continue; //選下個號碼
+		}
+		else{
+			var result = _search(value_dict_after_assign); //assign 成功，search 下個 square
+			//if search 結果不為 false，代表已觸發終止條件回傳最終 solution
+			if (result != false) return result;			
+			//else: search 結果為 false，回到 for loop 選擇下個 value
+		}
 	}
-}
 
+	//if value_dict_after_assign 皆為 false，則回朔至上一個 search，
+	return false;
+}
+/**
+ * 尋找陣列的最小值，並回傳其 index
+ * @param {*} array 待尋找的陣列
+ */
+function indexOfMinum(array){
+	var index = 0;
+	for(let i in array){
+		if(array[i] < array[index])
+			index = i;
+	}
+	return index;
+}
 /**
  * 以 constraint propagation 初步簡化值域 values
  * @param {*} grid 數獨謎題，資料型態:字串
@@ -78,15 +110,15 @@ function _grid_values(grid){
 	return SQUARE_ARRAY.map((v, i) => [v, chars[i]]);
 }
 /**
- * 將位置 s 的值域中，除 d 值外全部刪除
+ * 將位置 square 的值域中，除 value 值外全部刪除
  * @param {*} value_dict square 的值域
  * @param {*} square 位置
  * @param {*} value 值
  */
 function _assign(value_dict, square, value){
     var other_values = value_dict[square].replace(value, '');
-    for(let d2 of other_values){
-        var is_success = _eliminate(value_dict,square,d2);
+    for(let val of other_values){
+        var is_success = _eliminate(value_dict,square,val);
         if(is_success === false) return false;
     }
 
@@ -111,16 +143,16 @@ function _eliminate(value_dict, square, value){
         return false; 
     }
 
-    // (1)如果位置 square 的值域已縮減至只有一個值 d2，則將該值從其 peers 的值域中移除
+    // (1)如果位置 square 的值域已縮減至只有一個值 solved_value，則將該值從其 peers 的值域中移除
     if(value_dict[square].length === 1){
         var solved_value = value_dict[square];
-        for(let square of PEERS[square]){
-            var is_success = _eliminate(value_dict, square, solved_value);
+        for(let s of PEERS[square]){
+            var is_success = _eliminate(value_dict, s, solved_value);
             if(is_success === false) return false;
         }
     }
 
-    // (2) 如果某個 unit 只有一個位置可以放 d 值，則將其放在那。
+    // (2) 如果某個 unit 只有一個位置可以放 value 值，則將其放在那。
     for(let unit of UNITS[square]){
         var dplaces = [];
         for(let square of unit){
@@ -129,7 +161,7 @@ function _eliminate(value_dict, square, value){
             }
         }
 
-        if(dplaces.length === 0){ // 衝突: 沒有位置可以放 d 值
+        if(dplaces.length === 0){ // 衝突: 沒有位置可以放 value 值
             return false;
         }
         if(dplaces.length === 1){
