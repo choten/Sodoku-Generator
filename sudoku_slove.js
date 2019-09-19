@@ -12,15 +12,81 @@ var UNITS = _create_units();
  */
 var PEERS = _create_peers();
 
+function generate(){
+	/**
+	 * square 的值域，鍵值對應，ex: values = {A1: "123456789", A2: "123456789".....
+	 */
+	var value_dict = {};
+	for(let square of SQUARE_ARRAY){
+		value_dict[square] = DIGITS;
+	}
+
+	//產生雛形
+	//用解法器測試
+	
+	return value_dict;
+}
+/**
+ * 確認是否達到終止條件
+ * @param {*} end_number 終止數目
+ * @param {*} value_dict square 的值域
+ */
+function check_is_ended(end_number,value_dict){
+	var count = 0;
+	for(let square of SQUARE_ARRAY){
+		if(value_dict[square].length <= 1) 
+		  count++;
+	}
+
+	if(count <= end_number)
+		return true;
+	else
+		return false;
+}
+/**
+ * 產生雛形
+ * @param {*} value_dict square 的值域
+ */
+function gen_prototype(value_dict){
+	//在先前階段已經發生錯誤
+	if(value_dict == false) return false;
+
+	//終止條件，如果 value_dict 有35個 square 的值域只有一個值，則代表數獨已產生完
+	var is_ended = check_is_ended(35,value_dict);
+	if(is_ended === true) return value_dict;
+
+	//開始產生
+	//隨機選一個未給值的 square
+	var next_square;
+
+	//對 next_square 做 back tracking search
+	for(let value of value_dict[next_square]){
+		var new_value_dict = Object.assign({},value_dict); //每個 branch 皆 deep clone 一個新的 value_dict
+		var value_dict_after_assign = _assign(new_value_dict,next_square,value);
+		if(value_dict_after_assign == false) {
+			continue; //選下個號碼
+		}
+		else{
+			var result = gen_prototype(value_dict_after_assign); //assign 成功，search 下個 square
+			//if search 結果不為 false，代表已觸發終止條件回傳最終 solution
+			if (result != false) return result;			
+			//else: search 結果為 false，回到 for loop 選擇下個 value
+		}
+	}
+
+	//if value_dict_after_assign 皆為 false，則回朔至上一個 search，
+	return false;
+}
+
 /**
  * 數獨解法器
  * @param {*} grid 數獨
  */
 function solve(grid){ 
-	return _search(_parse_grid(grid));
+	return search(parse_grid(grid));
 }
 
-function _search(value_dict){
+function search(value_dict){
 	//在先前階段已經發生錯誤
 	if(value_dict == false) return false;
 
@@ -45,7 +111,7 @@ function _search(value_dict){
 			continue; //選下個號碼
 		}
 		else{
-			var result = _search(value_dict_after_assign); //assign 成功，search 下個 square
+			var result = search(value_dict_after_assign); //assign 成功，search 下個 square
 			//if search 結果不為 false，代表已觸發終止條件回傳最終 solution
 			if (result != false) return result;			
 			//else: search 結果為 false，回到 for loop 選擇下個 value
@@ -71,7 +137,7 @@ function indexOfMinum(array){
  * 以 constraint propagation 初步簡化值域 values
  * @param {*} grid 數獨謎題，資料型態:字串
  */
-function _parse_grid(grid){
+function parse_grid(grid){
 	/**
 	 * square 的值域，鍵值對應，ex: values = {A1: "123456789", A2: "123456789".....
 	 */
